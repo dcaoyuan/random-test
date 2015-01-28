@@ -14,4 +14,25 @@ Core Design
    -
    `Nashorn <http://docs.oracle.com/javase/8/docs/technotes/guides/scripting/nashorn/>`__)
 
+Run astore
+^^^^^^^^^^
+
+.. code:: shell
+
+    $ sbt run
+
+Or
+
+.. code:: shell
+
+    $ sbt clean compile dist
+    $ ls target/universal/
+    tmp  astore-0.1.1-SNAPSHOT.zip 
+
+Then, copy astore-0.1.1.-SNAPSHOT.zip to somewhere and unzip it
+
+.. code:: shell
+
+    $ cd astore-0.1.1-SNAPSHOT/bin
+    $ ./astore
 
