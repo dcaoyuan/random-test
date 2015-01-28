@@ -203,4 +203,7 @@ Try it:
 
     $ ab -c100 -n100000 -k 'http://127.0.0.1:8080/hatinv/get/1?benchmark_only=1024'
 
+Script example: (requires JDK8+)
+''''''''''''''''''''''''''''''''
+
 
