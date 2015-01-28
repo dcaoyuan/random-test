@@ -206,4 +206,46 @@ Try it:
 Script example: (requires JDK8+)
 ''''''''''''''''''''''''''''''''
 
+A piece of JavaScript code that will be executed when field
+PersionInfo.name was updated: on\_name.js:
+
+.. code:: javascript
+
+    function onNameUpdated() {
+        var age = record.get("age");
+        what_is(age);
+        what_is(http_get);
+        http_get.apply("http://localhost:8080/ping");
+        http_post.apply("http://localhost:8080/personinfo/put/2/age", "888");
+        for (i = 0; i < fields.length; i++) {
+            var field = fields[i];
+            what_is(field._1);
+            what_is(field._2);
+        }
+    }
+
+    function what_is(value) {
+        print(id + ": " + value);
+    }
+
+    onNameUpdated();
+
+Try it:
+
+.. code:: shell
+
+    $ curl --data-binary @on_name.js \
+     'http://127.0.0.1:8080/personinfo/putscript/name/SCRIPT_NO_1'
+    OK
+
+    $ curl --data '"John"' 'http://127.0.0.1:8080/personinfo/put/1/name'
+    OK
+
+    $ curl 'http://127.0.0.1:8080/personinfo/get/2/age'
+    888
+
+Example 2: With Embedded Type
+'''''''''''''''''''''''''''''
+
+Schema: hatInventory.avsc
 
