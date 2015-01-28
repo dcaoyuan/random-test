@@ -328,7 +328,6 @@ Simple GET/PET REST-JSON Result:
 
     Simple GET: 169,437 [req#/sec] (mean)
     Simple PET: 102,961 [req#/sec] (mean)
-Details: `Benchmark <https://github.com/wandoulabs/astore/wiki>`__
 
 To run:
 
