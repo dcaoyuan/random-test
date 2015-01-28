@@ -328,5 +328,72 @@ Simple GET/PET REST-JSON Result:
 
     Simple GET: 169,437 [req#/sec] (mean)
     Simple PET: 102,961 [req#/sec] (mean)
+Details: `Benchmark <https://github.com/wandoulabs/astore/wiki>`__
+
+To run:
+
+
+.. code:: shell
+
+    sbt run
+    cd src/test/resources/avsc
+    ./bench.sh
+    ./bench-put.sh
+
+Preface
+=======
+
+astore stores Avro record, with two groups of APIs:
+
+-  Primitive API (Scala/Java)
+-  RESTful API
+
+Primitive API (Scala / Java)
+----------------------------
+
+use **avpath** expression to locate. see
+`avpath <https://github.com/wandoulabs/avpath>`__
+
+1. Schema
+~~~~~~~~~
+
+.. code:: scala
+
+    case class PutSchema(entityName: String, schema: String, entityFullName: Option[String])
+    case class RemoveSchema(entityName: String)
+
+2. Basic operations
+~~~~~~~~~~~~~~~~~~~
+
+.. code:: scala
+
+    case class GetRecord(id: String)
+    case class GetRecordAvro(id: String)
+    case class GetRecordJson(id: String)
+    case class PutRecord(id: String, record: Record)
+    case class PutRecordJson(id: String, record: String)
+    case class GetField(id: String, field: String)
+    case class GetFieldAvro(id: String, field: String)
+    case class GetFieldJson(id: String, field: String)
+    case class PutField(id: String, field: String, value: Any)
+    case class PutFieldJson(id: String, field: String, value: String)
+
+    case class Select(id: String, path: String)
+    case class SelectAvro(id: String, path: String)
+    case class SelectJson(id: String, path: String)
+    case class Update(id: String, path: String, value: Any)
+    case class UpdateJson(id: String, path: String, value: String)
+
+3. Operations applicable on Array / Map
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: scala
+
+    case class Insert(id: String, path: String, value: Any)
+    case class InsertJson(id: String, path: String, value: String)
+    case class InsertAll(id: String, path: String, values: List[_])
+    case class InsertAllJson(id: String, path: String, values: String)
+    case class Delete(id: String, path: String)
+    case class Clear(id: String, path: String)
 
 
