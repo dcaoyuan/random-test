@@ -351,7 +351,6 @@ Primitive API (Scala / Java)
 ----------------------------
 
 use **avpath** expression to locate. see
-`avpath <https://github.com/wandoulabs/avpath>`__
 
 1. Schema
 ~~~~~~~~~
