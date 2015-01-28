@@ -350,7 +350,6 @@ astore stores Avro record, with two groups of APIs:
 Primitive API (Scala / Java)
 ----------------------------
 
-use **avpath** expression to locate. see
 
 1. Schema
 ~~~~~~~~~
