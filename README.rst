@@ -1,595 +1,1091 @@
-astore
+avpath
 ======
 
-Avro Data Store based on Akka (TODO persistence)
+XPath likeness for Avro
 
-Core Design
-^^^^^^^^^^^
-
--  Each record is an actor (non-blocking)
--  Akka sharding cluster (easy to scale-out)
--  Locate field/value deeply via
-   `avpath <https://github.com/wandoulabs/avpath>`__
--  Scripting triggered by field updating events (JDK 8 JavaScript engine
-   -
-   `Nashorn <http://docs.oracle.com/javase/8/docs/technotes/guides/scripting/nashorn/>`__)
-
-Run astore
-^^^^^^^^^^
-
-.. code:: shell
-
-    $ sbt run
-
-Or
-
-.. code:: shell
-
-    $ sbt clean compile dist
-    $ ls target/universal/
-    tmp  astore-0.1.1-SNAPSHOT.zip 
-
-Then, copy astore-0.1.1.-SNAPSHOT.zip to somewhere and unzip it
-
-.. code:: shell
-
-    $ cd astore-0.1.1-SNAPSHOT/bin
-    $ ./astore
-
-Access astore
-^^^^^^^^^^^^^
-
-Example 1: Simple Record
-''''''''''''''''''''''''
-
-Schema: PersonInfo.avsc
-
-.. code:: json
-
-    {
-      "type" : "record",
-      "name" : "PersonInfo",
-      "namespace" : "astore",
-      "fields" : [ {
-        "name" : "name",
-        "type" : "string"
-      }, {
-        "name" : "age",
-        "type" : "int"
-      }, {
-        "name" : "gender",
-        "type" : {
-          "type" : "enum",
-          "name" : "GenderType",
-          "symbols" : [ "Female", "Male", "Unknown" ]
-        },
-        "default" : "Unknown"
-      }, {
-        "name" : "emails",
-        "type" : {
-          "type" : "array",
-          "items" : "string"
-        }
-      } ]
-    }
-
-Try it:
-
-.. code:: shell
-
-    $ cd src/test/resources/avsc
-
-    $ curl --data @PersonInfo.avsc 'http://127.0.0.1:8080/putschema/personinfo'
-    OK
-
-    $ curl 'http://127.0.0.1:8080/personinfo/get/1'
-    {"name":"","age":0,"gender":"Unknown","emails":[]}
-
-    $ curl --data-binary @PersonInfo.update 'http://127.0.0.1:8080/personinfo/update/1'
-    OK
-
-    $ curl 'http://127.0.0.1:8080/personinfo/get/1'
-    {"name":"James Bond","age":60,"gender":"Unknown","emails":[]}
-
-    $ curl 'http://127.0.0.1:8080/personinfo/get/1/name'
-    "James Bond"
-
-    $ ab -c100 -n100000 -k 'http://127.0.0.1:8080/personinfo/get/1?benchmark_only=1024'
-
-Script example: (requires JDK8+)
-''''''''''''''''''''''''''''''''
-
-A piece of JavaScript code that will be executed when field
-PersionInfo.name was updated: on\_name.js:
-
-.. code:: javascript
-
-    function onNameUpdated() {
-        var age = record.get("age");
-        what_is(age);
-        what_is(http_get);
-        http_get.apply("http://localhost:8080/ping");
-        http_post.apply("http://localhost:8080/personinfo/put/2/age", "888");
-        for (i = 0; i < fields.length; i++) {
-            var field = fields[i];
-            what_is(field._1);
-            what_is(field._2);
-        }
-    }
-
-    function what_is(value) {
-        print(id + ": " + value);
-    }
-
-    onNameUpdated();
-
-Try it:
-
-.. code:: shell
-
-    $ curl --data-binary @on_name.js \
-     'http://127.0.0.1:8080/personinfo/putscript/name/SCRIPT_NO_1'
-    OK
-
-    $ curl --data '"John"' 'http://127.0.0.1:8080/personinfo/put/1/name'
-    OK
-
-    $ curl 'http://127.0.0.1:8080/personinfo/get/2/age'
-    888
-
-Example 2: With Embedded Type
-'''''''''''''''''''''''''''''
-
-Schema: hatInventory.avsc
-
-.. code:: json
-
-    {
-      "type" : "record",
-      "name" : "hatInventory",
-      "namespace" : "astore",
-      "fields" : [ {
-        "name" : "sku",
-        "type" : "string",
-        "default" : ""
-      }, {
-        "name" : "description",
-        "type" : {
-          "type" : "record",
-          "name" : "hatInfo",
-          "fields" : [ {
-            "name" : "style",
-            "type" : "string",
-            "default" : ""
-          }, {
-            "name" : "size",
-            "type" : "string",
-            "default" : ""
-          }, {
-            "name" : "color",
-            "type" : "string",
-            "default" : ""
-          }, {
-            "name" : "material",
-            "type" : "string",
-            "default" : ""
-          } ]
-        },
-        "default" : { }
-      } ]
-    }
-
-Try it:
-
-.. code:: shell
-
-    $ cd src/test/resources/avsc
-
-    $ curl --data @hatInventory.avsc 'http://127.0.0.1:8080/putschema/hatinv'
-    OK
-
-    $ curl 'http://127.0.0.1:8080/hatinv/get/1'
-    {"sku":"","description":{"style":"","size":"","color":"","material":""}}
-
-    $ curl --data '{"style":"classic","size":"Large","color":"Red"}' \
-     'http://127.0.0.1:8080/hatinv/put/1/description'
-    OK
-
-    $ curl 'http://127.0.0.1:8080/hatinv/get/1'
-    {"sku":"","description":{"style":"classic","size":"Large","color":"Red","material":""}}
-
-    $ curl 'http://127.0.0.1:8080/hatinv/get/1/description'
-    {"style":"classic","size":"Large","color":"Red","material":""}
-
-    $ ab -c100 -n100000 -k 'http://127.0.0.1:8080/hatinv/get/1?benchmark_only=1024'
-
-Simple benchmark for REST-JSON API (too simple too naive)
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-Environment:
-            
-
-::
-
-    HOST: Dell Inc. PowerEdge R420/0VD50G
-    CPU: 2 x Intel(R) Xeon(R) CPU E5-2420 v2 @ 2.20GHz (12 #core, 24 #HT)
-    OS: CentOS Linux release 7.0.1406 (Core)
-
-Simple GET/PET REST-JSON Result:
-                                
-
-::
-
-    Simple GET: 169,437 [req#/sec] (mean)
-    Simple PET: 102,961 [req#/sec] (mean)
-
-Details: `Benchmark <https://github.com/wandoulabs/astore/wiki>`__
-
-To run:
-       
-
-.. code:: shell
-
-    sbt run
-    cd src/test/resources/avsc
-    ./bench.sh
-    ./bench-put.sh
+avpath User Manual
+------------------
 
 Preface
 -------
 
-astore stores Avro record, with two groups of APIs:
+avpath is the likeness of xpath/jspath to select, update, insert, delete
+data on Avro form. Which could be used by Java/Scala as API library，or
+used as data service for Avro records. The expression is similar to
+`jspath <https://github.com/dfilatov/jspath>`__, but we also added APIs
+to support for **Update**, **Delete**, **Clear**, **Insert** and
+**InsertAll**. This manual is based on the User Manual of jspath.
 
--  Primitive API (Scala/Java)
--  RESTful API
-
-Primitive API (Scala / Java)
-----------------------------
-
-use **avpath** expression to locate. see
-`avpath <https://github.com/wandoulabs/avpath>`__
-
-1. Schema
-~~~~~~~~~
+Comparing to jspath that is applied on Json data, avpath is applied on
+Avro data that has Map data type, thus leading to an extra experssion to
+query map by key:
 
 .. code:: scala
 
-    case class PutSchema(entityName: String, schema: String, entityFullName: Option[String])
-    case class RemoveSchema(entityName: String)
+    avpath.select(record, ".mapfield(\"thekey\")")
 
-2. Basic operations
+Usage
+-----
+
+Select:
+~~~~~~~
+
+.. code:: scala
+
+    import com.wandoujia.avro.avpath.Evaluator
+    import com.wandoujia.avro.avpath.Parser
+
+    val schema = new Schema.parse("account.avsc")
+    val account = new GenericData.Record(schema)
+    ...
+
+    var x = avpath.select(record, ".chargeRecords[0].time")
+
+Update:
+~~~~~~~
+
+.. code:: scala
+
+    avpath.update(record, ".chargeRecords[0].time", 100000)
+
+Delete (Only applicable on elements of Array/Map):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: scala
+
+    avpath.delete(record, ".chargeRecords[*]{.time < 1000}")
+
+Clear (Only applicable on Array/Map):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: scala
+
+    avpath.clear(record, ".chargeRecords")
+
+Insert/InsertAll (Only applicable on Array/Map):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: scala
+
+    avpath.insert(record, ".chargeRecords", chargeRecord)
+
+    avpath.insertAll(record, ".chargeRecords", List(chargeRecord1, chargeRecord2))
+
+where:
+
+.. raw:: html
+
+   <table>
+     <tr>
+       <td></td>
+       <td>
+
+type
+
+.. raw:: html
+
+   </td>
+       <td>
+
+description
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+path
+
+.. raw:: html
+
+   </td>
+       <td>
+
+String
+
+.. raw:: html
+
+   </td>
+       <td>
+
+path expression
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+avro
+
+.. raw:: html
+
+   </td>
+       <td>
+
+any valid avro
+
+.. raw:: html
+
+   </td>
+       <td>
+
+input Avro data
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+schema
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Schema
+
+.. raw:: html
+
+   </td>
+       <td></td>
+     </tr>
+   </table>
+
+Quick example
+~~~~~~~~~~~~~
+
+the first param is pseudo avro record in json format.
+
+.. code:: scala
+
+    avpath.select(
+        {
+            "automobiles" : [
+                { "maker" : "Nissan", "model" : "Teana", "year" : 2011 },
+                { "maker" : "Honda", "model" : "Jazz", "year" : 2010 },
+                { "maker" : "Honda", "model" : "Civic", "year" : 2007 },
+                { "maker" : "Toyota", "model" : "Yaris", "year" : 2008 },
+                { "maker" :* "Honda", "model" : "Accord", "year" : 2011 }
+            ],
+            "motorcycles" : [{ "maker" : "Honda", "model" : "ST1300", "year" : 2012 }]
+        },
+        ".automobiles{.maker === \"Honda\" && .year > 2009}.model"
+        )
+
+Result will be:
+
+::
+
+    ['Jazz', 'Accord']
+
+Documentation
+-------------
+
+avpath expression consists of two type of top-level expressions:
+location path (required) and predicates (optional).
+
+Location path
+~~~~~~~~~~~~~
+
+To select items in avpath, you use a location path. A location path
+consists of one or more location steps. Every location step starts with
+dot (.) or two dots (..) depending on the item you're trying to select:
+
+-  ``.property`` — locates property immediately descended from context
+   items
+
+-  ``..property`` **[TODO]** — locates property deeply descended from
+   context items
+
+-  ``.`` — locates context items itself
+
+You can use the wildcard symbol (\*) instead of exact name of property:
+
+-  ``.*`` — locates all properties immediately descended from the
+   context items
+
+-  ``..*`` **[TODO]** — locates all properties deeply descended from the
+   context items
+
+Also avpath allows to join several properties:
+
+-  ``(.property1 | .property2 | .propertyN)`` — locates property1,
+   property2, propertyN immediately descended from context items
+
+-  or even ``(.property1 | .property2.property2_1.property2_1_1)`` —
+   locates .property1, .property2.property2\_1.property2\_1\_1 items
+
+Your location path can be absolute or relative. If location path starts
+with the root (^) you are using an absolute location path — your
+location path begins from the root items.
+
+Consider the following Avro data (**expressed in JSON for
+convenience**):
+
+.. code:: json
+
+    var doc = 
+    """
+    {
+        "books" : [
+            {
+                "id"     : 1,
+                "title"  : "Clean Code",
+                "author" : { "name" : "Robert C. Martin" },
+                "price"  : 17.96
+            },
+            {
+                "id"     : 2,
+                "title"  : "Maintainable JavaScript",
+                "author" : { "name" : "Nicholas C. Zakas" },
+                "price"  : 10
+            },
+            {
+                "id"     : 3,
+                "title"  : "Agile Software Development",
+                "author" : { "name" : "Robert C. Martin" },
+                "price"  : 20
+            },
+            {
+                "id"     : 4,
+                "title"  : "JavaScript: The Good Parts",
+                "author" : { "name" : "Douglas Crockford" },
+                "price"  : 15.67
+            }
+        ]
+    };
+
+    """
+
+Examples
+^^^^^^^^
+
+.. code:: scala
+
+    // find all books authors
+    avpath.select(doc, ".books.author")
+    // [{ name : 'Robert C. Martin' }, { name : 'Nicholas C. Zakas' }, { name : 'Robert C. Martin' }, { name : 'Douglas Crockford' }]
+
+    // find all books author names
+    avpath.select(doc, ".books.author.name")
+    // ['Robert C. Martin', 'Nicholas C. Zakas', 'Robert C. Martin', 'Douglas Crockford' ] 
+
+    // find all names in books*
+    avpath.select(doc, ".books..name")
+    // ['Robert C. Martin', 'Nicholas C. Zakas', 'Robert C. Martin', 'Douglas Crockford' ] 
+
+Predicates
+~~~~~~~~~~
+
+avpath predicates allow you to write very specific rules about items
+you'd like to select when constructing your expressions. Predicates are
+filters that restrict the items selected by location path. There're two
+possible types of predicates: object and positional.
+
+Object predicates
+~~~~~~~~~~~~~~~~~
+
+Object predicates can be used in a path expression to filter a subset of
+items according to a boolean expressions working on a properties of each
+item. Object predicates are embedded in braces.
+
+Basic expressions in object predicates:
+
+-  numeric literals (e.g. 1.23)
+
+-  string literals (e.g. "John Gold")
+
+-  boolean literals (true/false)
+
+-  subpathes (e.g. .nestedProp.deeplyNestedProp)
+
+avpath allows to use in predicate expressions following types of
+operators:
+
+-  comparison operators
+
+-  string comparison operators
+
+-  logical operators
+
+-  arithmetic operators
+
+**Comparison operators**
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+   <table>
+     <tr>
+       <td>
+
+==
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns is true if both operands are equal
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.id == "1"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+===
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if both operands are strictly equal with no type conversion
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.id === 1}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+!=
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if the operands are not equal
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.id != "1"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+!==
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if the operands are not equal and/or not of the same type
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.id !== 1}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+    .. raw:: html
+
+       </td>
+           <td>
+
+    Returns true if the left operand is greater than the right operand
+
+    .. raw:: html
+
+       </td>
+           <td>
+
+    .books{.id > 1}
+
+    .. raw:: html
+
+       </td>
+         </tr>
+         <tr>
+           <td>
+
+        =
+
+        .. raw:: html
+
+           </td>
+               <td>
+
+        Returns true if the left operand is greater than or equal to the
+        right operand
+
+        .. raw:: html
+
+           </td>
+               <td>
+
+        .books{.id >= 1}
+
+        .. raw:: html
+
+           </td>
+             </tr>
+             <tr>
+               <td>
+
+        <
+
+        .. raw:: html
+
+           </td>
+               <td>
+
+        Returns true if the left operand is less than the right operand
+
+        .. raw:: html
+
+           </td>
+               <td>
+
+        .books{.id < 1}
+
+        .. raw:: html
+
+           </td>
+             </tr>
+             <tr>
+               <td>
+
+        <=
+
+        .. raw:: html
+
+           </td>
+               <td>
+
+        Returns true if the left operand is less than or equal to the
+        right operand
+
+        .. raw:: html
+
+           </td>
+               <td>
+
+        .books{.id <= 1}
+
+        .. raw:: html
+
+           </td>
+             </tr>
+           </table>
+
+Comparison rules:
+
+-  if both operands to be compared are arrays, then the comparison will
+   be true if there is an element in the first array and an element in
+   the second array such that the result of performing the comparison of
+   two elements is true
+
+-  if one operand is array and another is not, then the comparison will
+   be true if there is element in array such that the result of
+   performing the comparison of element and another operand is true
+
+-  primitives to be compared as usual javascript primitives
+
+If both operands are strings, there're also available additional
+comparison operators:
+
+**String comparison operators**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+   <table>
+     <tr>
+       <td>
+
+==
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Like an usual '==' but case insensitive
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title == "clean code"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+^==
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if left operand value beginning with right operand value
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title ^== "Javascript"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+^=
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Like the '^==' but case insensitive
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title ^= "javascript"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+:math:`==</td>     <td>Returns true if left operand value ending with right operand value</td>     <td>.books{.title `\ ==
+"Javascript"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+:math:`=</td>     <td>Like the '`\ ==' but case insensitive
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title $= "javascript"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+\*==
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if left operand value contains right operand value
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title \*== "Javascript"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+\*=
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Like the '\*==' but case insensitive
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title \*= "javascript"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+   </table>
+
+**Logical operators**
+^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+   <table>
+     <tr>
+       <td>
+
+&&
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if both operands are true
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.price > 19 && .author.name === "Robert C. Martin"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+\|\|
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if either operand is true
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{.title === "Maintainable JavaScript" \|\| .title === "Clean
+Code"}
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+!
+
+.. raw:: html
+
+   </td>
+       <td>
+
+Returns true if operand is false
+
+.. raw:: html
+
+   </td>
+       <td>
+
+.books{!.title}
+
+.. raw:: html
+
+   </td>
+     </tr>
+   </table>
+
+Logical operators convert their operands to boolean values using next
+rules:
+
+-  if operand is array (as you remember result of applying subpath is
+   also array):
+
+   -  if length of array greater than zero, result will be true
+
+   -  else result will be false
+
+-  Casting with double NOT (!!) javascript operator to be used in any
+   other cases.
+
+**Arithmetic operators**
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+   <table>
+     <tr>
+       <td>
+
++
+
+.. raw:: html
+
+   </td>
+       <td>
+
+addition
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+-
+
+.. raw:: html
+
+   </td>
+       <td>
+
+subtraction
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+\*
+
+.. raw:: html
+
+   </td>
+       <td>
+
+multiplication
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+/
+
+.. raw:: html
+
+   </td>
+       <td>
+
+division
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+%
+
+.. raw:: html
+
+   </td>
+       <td>
+
+modulus
+
+.. raw:: html
+
+   </td>
+     </tr>
+   </table>
+
+**Operator precedence**
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+   <table>
+     <tr>
+       <td>
+
+1 (top)
+
+.. raw:: html
+
+   </td>
+       <td>
+
+! -unary
+
+.. raw:: html
+
+   </td>
+     </tr>
+     <tr>
+       <td>
+
+2
+
+.. raw:: html
+
+   </td>
+       <td>
+
+-  / %
+
+   .. raw:: html
+
+      </td>
+        </tr>
+        <tr>
+          <td>
+
+   3
+
+   .. raw:: html
+
+      </td>
+          <td>
+
+   -  -binary
+
+      .. raw:: html
+
+         </td>
+           </tr>
+           <tr>
+             <td>
+
+      4
+
+      .. raw:: html
+
+         </td>
+             <td>
+
+          =
+
+          .. raw:: html
+
+             </td>
+               </tr>
+               <tr>
+                 <td>
+
+          5
+
+          .. raw:: html
+
+             </td>
+                 <td>
+
+          == === != !== ^= ^== :math:`== `\ = *= *\ ==
+
+          .. raw:: html
+
+             </td>
+               </tr>
+               <tr>
+                 <td>
+
+          6
+
+          .. raw:: html
+
+             </td>
+                 <td>
+
+          &&
+
+          .. raw:: html
+
+             </td>
+               </tr>
+               <tr>
+                 <td>
+
+          7
+
+          .. raw:: html
+
+             </td>
+                 <td>
+
+          \|\|
+
+          .. raw:: html
+
+             </td>
+               </tr>
+             </table>
+
+Parentheses are used to explicitly denote precedence by grouping parts
+of an expression that should be evaluated first.
+
+Examples
+^^^^^^^^
+
+.. code:: scala
+
+    // find all book titles whose author is Robert C. Martin
+    avpath.select(doc, ".books{.author.name === \"Robert C. Martin\"}.title", schema)
+    // ['Clean Code', 'Agile Software Development']
+
+    // find all book titles with price less than 17
+    avpath.select(doc, ".books{.price < 17}.title", schema)
+    // ['Maintainable JavaScript', 'JavaScript: The Good Parts']
+
+Positional predicates
+~~~~~~~~~~~~~~~~~~~~~
+
+Positional predicates allow you to filter items by their context
+position. Positional predicates are always embedded in square brackets.
+
+There are four available forms:
+
+-  ``[ index]`` — returns index-positioned item in context (first item
+   is at index 0), e.g. [3] returns fourth item in context
+
+-  ``[index:]`` — returns items whose index in context is greater or
+   equal to index, e.g. [2:] returns items whose index in context is
+   greater or equal to 2
+
+-  ``[:index]`` — returns items whose index in context is smaller than
+   index, e.g. [:5] returns first five items in context
+
+-  ``[indexFrom:indexTo]`` — returns items whose index in context is
+   greater or equal to indexFrom and smaller than indexTo, e.g. [2:5]
+   returns three items with indices 2, 3 and 4
+
+Also you can use negative position numbers:
+
+-  ``[-1]`` — returns last item in context
+
+-  ``[-3:]`` — returns last three items in context
+
+Examples
+^^^^^^^^
+
+.. code:: Scala
+
+    // find first book title
+    avpath.select(doc, ".books[0].title")
+    // ['Clean Code']
+
+    // find first title of books
+    avpath.select(doc, ".books.title[0]")
+    // 'Clean Code'
+
+    // find last book title
+    avpath.select(doc, ".books[-1].title")
+    // ['JavaScript: The Good Parts']
+
+    // find two first book titles
+    avpath.select(doc, ".books[:2].title")
+    // ['Clean Code', 'Maintainable JavaScript']
+
+    // find two last book titles
+    avpath.select(doc, ".books[-2:].title")
+    // ['Agile Software Development', 'JavaScript: The Good Parts']
+
+    // find two book titles from second position
+    avpath.select(doc, ".books[1:3].title")
+    // ['Maintainable JavaScript', 'Agile Software Development']
+
+Multiple predicates
 ~~~~~~~~~~~~~~~~~~~
 
-.. code:: scala
+You can use more than one predicate. The result will contain only items
+that match all the predicates.
 
-    case class GetRecord(id: String)
-    case class GetRecordAvro(id: String)
-    case class GetRecordJson(id: String)
-    case class PutRecord(id: String, record: Record)
-    case class PutRecordJson(id: String, record: String)
-    case class GetField(id: String, field: String)
-    case class GetFieldAvro(id: String, field: String)
-    case class GetFieldJson(id: String, field: String)
-    case class PutField(id: String, field: String, value: Any)
-    case class PutFieldJson(id: String, field: String, value: String)
-
-    case class Select(id: String, path: String)
-    case class SelectAvro(id: String, path: String)
-    case class SelectJson(id: String, path: String)
-    case class Update(id: String, path: String, value: Any)
-    case class UpdateJson(id: String, path: String, value: String)
-
-3. Operations applicable on Array / Map
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Examples**
+^^^^^^^^^^^^
 
 .. code:: scala
 
-    case class Insert(id: String, path: String, value: Any)
-    case class InsertJson(id: String, path: String, value: String)
-    case class InsertAll(id: String, path: String, values: List[_])
-    case class InsertAllJson(id: String, path: String, values: String)
-    case class Delete(id: String, path: String)
-    case class Clear(id: String, path: String)
+    // find first book name whose price less than 15 and greater than 5
+    avpath.select(doc, ".books{.price < 15}{.price > 5}[0].title")
+    // ['Maintainable JavaScript']
 
-4. Script
-~~~~~~~~~
+Substitutions (TODO)
+~~~~~~~~~~~~~~~~~~~~
+
+Substitutions allow you to use runtime-evaluated values in predicates.
+
+Examples
+^^^^^^^^
 
 .. code:: scala
 
-    case class PutScript(entity: String, field: String, id: String, script: String)
-    case class RemoveScript(entity: String, field: String, id: String)
+    var path = ".books{.author.name === $author}.title"
 
-RESTful API
------------
+    // find book name whose author Nicholas C. Zakas
+    avpath.select(doc, path, """{ author : 'Nicholas C. Zakas' }""")
+    // ['Maintainable JavaScript'] 
 
-Put schema
-~~~~~~~~~~
+    // find books name whose authors Robert C. Martin or Douglas Crockford
+    avpath.select(doc, path, { author : """['Robert C. Martin', 'Douglas Crockford']""" })
+    // ['Clean Code', 'Agile Software Development', 'JavaScript: The Good Parts']
 
-::
-
-    POST /putschema/$entityName/ 
-
-    Host: status.wandoujia.com  
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <SCHEMA_STRING>
-
-Put schema that contains multiple referenced complex types in union
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    POST /putschema/$entityName/$entryEntityFullName 
-
-    Host: status.wandoujia.com  
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <SCHEMA_STRING>
-
-Del schame
-~~~~~~~~~~
-
-::
-
-    GET /delschema/$entityName/ 
-
-    Host: status.wandoujia.com  
-
-Get record
-~~~~~~~~~~
-
-::
-
-    GET /$entity/get/$id/ 
-
-    Host: status.wandoujia.com  
-
-Get record field
-~~~~~~~~~~~~~~~~
-
-::
-
-    GET /$entity/get/$id/$field
-
-    Host: status.wandoujia.com  
-
-Put record
-~~~~~~~~~~
-
-::
-
-    POST /$entity/put/$id/ 
-
-    Host: status.wandoujia.com  
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <JSON_STRING>
-
-Put record field
-~~~~~~~~~~~~~~~~
-
-::
-
-    POST /$entity/put/$id/$field 
-
-    Host: status.wandoujia.com  
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <JSON_STRING>
-
-Select
+Result
 ~~~~~~
 
-::
-
-    POST /$entity/select/$id/ 
-
-    Host: status.wandoujia.com  
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    $avpath
-    <JSON_STRING>
-
-Update
-~~~~~~
-
-::
-
-    POST /$entity/update/$id/$avpath
-
-    Host: status.wandoujia.com 
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <JSON_STRING>
-
-Example (update array field -> record’s number field):
-
-::
-
-    POST /account/update/12345/
-    BODY: 
-    .chargeRecords[0].time
-    1234
-
-Example (update map field -> record’s number field):
-
-::
-
-    POST /account/update/12345/
-    BODY:
-    .devApps("a"|"b").numBlackApps
-    1234
-
-Insert (applicable for Array / Map only)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    POST /$entity/insert/$id/$avpath
-
-    Host: status.wandoujia.com 
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <JSON_STRING>
-
-Example (insert to array field):
-
-::
-
-    POST /account/insert/12345/
-    BODY: 
-    .chargeRecords
-    {"time": 4, "amount": -4.0}
-
-Example (insert to map field):
-
-::
-
-    POST /account/insert/12345/
-    BODY: 
-    .devApps
-    {"h" : {"numBlackApps": 10}}
-
-InsertAll (applicable for Array / Map only)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    POST /$entity/insertall/$id/$avpath
-
-    Host: status.wandoujia.com 
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <JSON_STRING>
-
-Example (insert to array field):
-
-::
-
-    POST /account/insertall/12345/
-    BODY: 
-    .chargeRecords
-    [{"time": -1, "amount": -5.0}, {"time": -2, "amount": -6.0}]
-
-Example (insert to map field):
-
-::
-
-    POST /account/insertall/12345/
-    BODY: 
-    .devApps
-    {"g" : {}, "h" : {"numBlackApps": 10}}
-
-Delete (applicable for Array / Map only)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    POST /$entity/delete/$id/
-
-    Host: status.wandoujia.com 
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    $avpath
-
-Clear (applicable for Array / Map only)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    POST /$entity/clear/$id/
-
-    Host: status.wandoujia.com 
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    $avpath
-
-Put Script (apply on all instances of this entity)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    POST /$entity/putscript/$field/$scriptid/
-
-    Host: status.wandoujia.com 
-    Content-Type: application/octet-stream 
-    Content-Length: NNN
-
-    BODY:
-    <JavaScript>
-
-Del Script (apply on all instances of this entity)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-::
-
-    GET /$entity/delscript/$field/$scriptid/
-
-    Host: status.wandoujia.com 
-
-Note:
-
--  Replace ``$entity`` with the object/table/entity name
--  Replace ``$id`` with object id
--  Replace ``$avpath`` with actual avpath expression
--  Put the ``$avpath`` and **** format value(s) for **update / insert /
-   insertall** in **POST** body, separate ``$avpath`` and **** with
-   **""**, and make sure it’s encoded as binary, set **Content-Type:
-   application/octet-stream**
-
-Scripting supporting
---------------------
-
-The bindings that could be accessed in script:
-
-.. code:: scala
-
-      def prepareBindings(onUpdated: OnUpdated) = {
-        val bindings = new SimpleBindings
-        bindings.put("http_get", http_get)
-        bindings.put("http_post", http_post)
-        bindings.put("id", onUpdated.id)
-        bindings.put("record", onUpdated.recordAfter)
-        bindings.put("fields", onUpdated.fieldsBefore)
-        bindings
-      }
-
-Where, \* ``http_get``: a function could be invoked via
-``http_get.apply(url: String)`` \* ``http_post``: a function could be
-invoked via ``http_post.apply(url: String, body: String)`` \* ``id``:
-the id of this entity \* ``record``: the entity record after updated \*
-``fields``: array of tuple (Schema.Field, valueBeforeUpdated) during
-this updating action \* ``fields(i)._1``:
-`org.apache.avro.Schema.Field <https://avro.apache.org/docs/1.7.7/api/java/org/apache/avro/Schema.Field.html>`__
-\* ``fields(i)._2``: value
-
--  The JavaScript code should do what ever operation via function only.
-   You can define local variables in function, and transfer these local
-   vars between functions to share them instead of defining global vars.
-
-Reference
-=========
-
--  `avpath <https://github.com/wandoulabs/avpath>`__
--  `Nashorn <https://wiki.openjdk.java.net/display/Nashorn/Main>`__
-
+Result of applying AvPath is always a List (empty, if found nothing),
+excluding case when the last predicate in top-level expression is a
+positional predicate with the exact index (e.g. [0], [5], [-1]). In this
+case, result is an Option item at the specified index (None if item
+hasn't found).
