@@ -249,3 +249,84 @@ Example 2: With Embedded Type
 
 Schema: hatInventory.avsc
 
+.. code:: json
+
+    {
+      "type" : "record",
+      "name" : "hatInventory",
+      "namespace" : "astore",
+      "fields" : [ {
+        "name" : "sku",
+        "type" : "string",
+        "default" : ""
+      }, {
+        "name" : "description",
+        "type" : {
+          "type" : "record",
+          "name" : "hatInfo",
+          "fields" : [ {
+            "name" : "style",
+            "type" : "string",
+            "default" : ""
+          }, {
+            "name" : "size",
+            "type" : "string",
+            "default" : ""
+          }, {
+            "name" : "color",
+            "type" : "string",
+            "default" : ""
+          }, {
+            "name" : "material",
+            "type" : "string",
+            "default" : ""
+          } ]
+        },
+        "default" : { }
+      } ]
+    }
+
+Try it:
+
+.. code:: shell
+
+    $ cd src/test/resources/avsc
+
+    $ curl --data @hatInventory.avsc 'http://127.0.0.1:8080/putschema/hatinv'
+    OK
+
+    $ curl 'http://127.0.0.1:8080/hatinv/get/1'
+    {"sku":"","description":{"style":"","size":"","color":"","material":""}}
+
+    $ curl --data '{"style":"classic","size":"Large","color":"Red"}' \
+     'http://127.0.0.1:8080/hatinv/put/1/description'
+    OK
+
+    $ curl 'http://127.0.0.1:8080/hatinv/get/1'
+    {"sku":"","description":{"style":"classic","size":"Large","color":"Red","material":""}}
+
+    $ curl 'http://127.0.0.1:8080/hatinv/get/1/description'
+    {"style":"classic","size":"Large","color":"Red","material":""}
+
+    $ ab -c100 -n100000 -k 'http://127.0.0.1:8080/hatinv/get/1?benchmark_only=1024'
+
+Simple benchmark for REST-JSON API (too simple too naive)
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Environment:
+            
+
+::
+
+    HOST: Dell Inc. PowerEdge R420/0VD50G
+    CPU: 2 x Intel(R) Xeon(R) CPU E5-2420 v2 @ 2.20GHz (12 #core, 24 #HT)
+    OS: CentOS Linux release 7.0.1406 (Core)
+
+Simple GET/PET REST-JSON Result:
+                                
+
+::
+
+    Simple GET: 169,437 [req#/sec] (mean)
+    Simple PET: 102,961 [req#/sec] (mean)
+
+
