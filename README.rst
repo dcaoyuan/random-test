@@ -292,9 +292,9 @@ comparison operators:
 +-----+-----------------------------------------------------------------------+---------------------------------+
 | $=  | Like the '$==' but case insensitive                                   | .books{.title $= "javascript"}  |
 +-----+-----------------------------------------------------------------------+---------------------------------+
-| *== | Returns true if left operand value contains right operand value       | .books{.title *== "Javascript"} |
+| \*== | Returns true if left operand value contains right operand value       | .books{.title \*== "Javascript"} |
 +-----+-----------------------------------------------------------------------+---------------------------------+
-| *=  | Like the '*==' but case insensitive                                   | .books{.title *= "javascript"}  |
+| \*=  | Like the '\*==' but case insensitive                                   | .books{.title \*= "javascript"}  |
 +-----+-----------------------------------------------------------------------+---------------------------------+
 
 **Logical operators**
@@ -324,9 +324,9 @@ rules:
 **Arithmetic operators**
 ^^^^^^^^^^^^^^^^^^^^^^^^
 +---+----------------+
-| \+ | addition       |
+| + | addition       |
 +---+----------------+
-| \- | subtraction    |
+| - | subtraction    |
 +---+----------------+
 | * | multiplication |
 +---+----------------+
