@@ -324,9 +324,9 @@ rules:
 **Arithmetic operators**
 ^^^^^^^^^^^^^^^^^^^^^^^^
 +---+----------------+
-| + | addition       |
+| \+ | addition       |
 +---+----------------+
-| - | subtraction    |
+| \- | subtraction    |
 +---+----------------+
 | * | multiplication |
 +---+----------------+
