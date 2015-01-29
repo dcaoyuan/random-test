@@ -73,90 +73,15 @@ Insert/InsertAll (Only applicable on Array/Map):
 
 where:
 
-.. raw:: html
-
-   <table>
-     <tr>
-       <td></td>
-       <td>
-
-type
-
-.. raw:: html
-
-   </td>
-       <td>
-
-description
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-path
-
-.. raw:: html
-
-   </td>
-       <td>
-
-String
-
-.. raw:: html
-
-   </td>
-       <td>
-
-path expression
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-avro
-
-.. raw:: html
-
-   </td>
-       <td>
-
-any valid avro
-
-.. raw:: html
-
-   </td>
-       <td>
-
-input Avro data
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-schema
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Schema
-
-.. raw:: html
-
-   </td>
-       <td></td>
-     </tr>
-   </table>
++--------+----------------+-----------------+
+|        | Type           | Description     |
++========+================+=================+
+| path   | string         | path expression |
++--------+----------------+-----------------+
+| avro   | any valid avro | input avro data |
++--------+----------------+-----------------+
+| schema | schema         |                 |
++--------+----------------+-----------------+
 
 Quick example
 ~~~~~~~~~~~~~
@@ -319,195 +244,23 @@ operators:
 
 **Comparison operators**
 ^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-   <table>
-     <tr>
-       <td>
-
-==
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns is true if both operands are equal
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.id == "1"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-===
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if both operands are strictly equal with no type conversion
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.id === 1}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-!=
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if the operands are not equal
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.id != "1"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-!==
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if the operands are not equal and/or not of the same type
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.id !== 1}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-    .. raw:: html
-
-       </td>
-           <td>
-
-    Returns true if the left operand is greater than the right operand
-
-    .. raw:: html
-
-       </td>
-           <td>
-
-    .books{.id > 1}
-
-    .. raw:: html
-
-       </td>
-         </tr>
-         <tr>
-           <td>
-
-        =
-
-        .. raw:: html
-
-           </td>
-               <td>
-
-        Returns true if the left operand is greater than or equal to the
-        right operand
-
-        .. raw:: html
-
-           </td>
-               <td>
-
-        .books{.id >= 1}
-
-        .. raw:: html
-
-           </td>
-             </tr>
-             <tr>
-               <td>
-
-        <
-
-        .. raw:: html
-
-           </td>
-               <td>
-
-        Returns true if the left operand is less than the right operand
-
-        .. raw:: html
-
-           </td>
-               <td>
-
-        .books{.id < 1}
-
-        .. raw:: html
-
-           </td>
-             </tr>
-             <tr>
-               <td>
-
-        <=
-
-        .. raw:: html
-
-           </td>
-               <td>
-
-        Returns true if the left operand is less than or equal to the
-        right operand
-
-        .. raw:: html
-
-           </td>
-               <td>
-
-        .books{.id <= 1}
-
-        .. raw:: html
-
-           </td>
-             </tr>
-           </table>
++-----+--------------------------------------------------------------------------------+--------------------+
+| ==  | Returns is true if both operands are equal                                     | .books{.id == "1"} |
++-----+--------------------------------------------------------------------------------+--------------------+
+| === | Returns true if both operands are strictly equal with no type conversion       | .books{.id === 1}  |
++-----+--------------------------------------------------------------------------------+--------------------+
+| !=  | Returns true if the operands are not equal                                     | .books{.id != "1"} |
++-----+--------------------------------------------------------------------------------+--------------------+
+| !== | Returns true if the operands are not equal and/or not of the same type         | .books{.id !== 1}  |
++-----+--------------------------------------------------------------------------------+--------------------+
+| >   | Returns true if the left operand is greater than the right operand             | .books{.id > 1}    |
++-----+--------------------------------------------------------------------------------+--------------------+
+| >=  | Returns true if the left operand is greater than or equal to the right operand | .books{.id >= 1}   |
++-----+--------------------------------------------------------------------------------+--------------------+
+| <   | Returns true if the left operand is less than the right operand                | .books{.id         |
++-----+--------------------------------------------------------------------------------+--------------------+
+| <=  | Returns true if the left operand is less than or equal to the right operand    | .books{.id         |
++-----+--------------------------------------------------------------------------------+--------------------+
 
 Comparison rules:
 
@@ -528,229 +281,32 @@ comparison operators:
 **String comparison operators**
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-   <table>
-     <tr>
-       <td>
-
-==
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Like an usual '==' but case insensitive
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title == "clean code"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-^==
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if left operand value beginning with right operand value
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title ^== "Javascript"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-^=
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Like the '^==' but case insensitive
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title ^= "javascript"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-:math:`==</td>     <td>Returns true if left operand value ending with right operand value</td>     <td>.books{.title `\ ==
-"Javascript"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-:math:`=</td>     <td>Like the '`\ ==' but case insensitive
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title $= "javascript"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-\*==
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if left operand value contains right operand value
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title \*== "Javascript"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-\*=
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Like the '\*==' but case insensitive
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title \*= "javascript"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-   </table>
++-----+-----------------------------------------------------------------------+---------------------------------+
+| ==  | Like an usual '==' but case insensitive                               | .books{.title == "clean code"}  |
++-----+-----------------------------------------------------------------------+---------------------------------+
+| ^== | Returns true if left operand value beginning with right operand value | .books{.title ^== "Javascript"} |
++-----+-----------------------------------------------------------------------+---------------------------------+
+| ^=  | Like the '^==' but case insensitive                                   | .books{.title ^= "javascript"}  |
++-----+-----------------------------------------------------------------------+---------------------------------+
+| $== | Returns true if left operand value ending with right operand value    | .books{.title $== "Javascript"} |
++-----+-----------------------------------------------------------------------+---------------------------------+
+| $=  | Like the '$==' but case insensitive                                   | .books{.title $= "javascript"}  |
++-----+-----------------------------------------------------------------------+---------------------------------+
+| *== | Returns true if left operand value contains right operand value       | .books{.title *== "Javascript"} |
++-----+-----------------------------------------------------------------------+---------------------------------+
+| *=  | Like the '*==' but case insensitive                                   | .books{.title *= "javascript"}  |
++-----+-----------------------------------------------------------------------+---------------------------------+
 
 **Logical operators**
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
-
-   <table>
-     <tr>
-       <td>
-
-&&
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if both operands are true
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.price > 19 && .author.name === "Robert C. Martin"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-\|\|
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if either operand is true
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{.title === "Maintainable JavaScript" \|\| .title === "Clean
-Code"}
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-!
-
-.. raw:: html
-
-   </td>
-       <td>
-
-Returns true if operand is false
-
-.. raw:: html
-
-   </td>
-       <td>
-
-.books{!.title}
-
-.. raw:: html
-
-   </td>
-     </tr>
-   </table>
++-----+----------------------------------------+-------------------------------------------------------------------------+
+| &&  | Returns true if both operands are true | .books{.price > 19 && .author.name === "Robert C. Martin"}              |
++-----+----------------------------------------+-------------------------------------------------------------------------+
+| ||  | Returns true if either operand is true | .books{.title === "Maintainable JavaScript" || .title === "Clean Code"} |
++-----+----------------------------------------+-------------------------------------------------------------------------+
+| !   | Returns true if operand is false       | .books{!.title}                                                         |
++-----+----------------------------------------+-------------------------------------------------------------------------+
 
 Logical operators convert their operands to boolean values using next
 rules:
@@ -767,211 +323,35 @@ rules:
 
 **Arithmetic operators**
 ^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-   <table>
-     <tr>
-       <td>
-
-+
-
-.. raw:: html
-
-   </td>
-       <td>
-
-addition
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
--
-
-.. raw:: html
-
-   </td>
-       <td>
-
-subtraction
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-\*
-
-.. raw:: html
-
-   </td>
-       <td>
-
-multiplication
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-/
-
-.. raw:: html
-
-   </td>
-       <td>
-
-division
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-%
-
-.. raw:: html
-
-   </td>
-       <td>
-
-modulus
-
-.. raw:: html
-
-   </td>
-     </tr>
-   </table>
++---+----------------+
+| + | addition       |
++---+----------------+
+| - | subtraction    |
++---+----------------+
+| * | multiplication |
++---+----------------+
+| / | division       |
++---+----------------+
+| % | modulus        |
++---+----------------+
 
 **Operator precedence**
 ^^^^^^^^^^^^^^^^^^^^^^^
-
-.. raw:: html
-
-   <table>
-     <tr>
-       <td>
-
-1 (top)
-
-.. raw:: html
-
-   </td>
-       <td>
-
-! -unary
-
-.. raw:: html
-
-   </td>
-     </tr>
-     <tr>
-       <td>
-
-2
-
-.. raw:: html
-
-   </td>
-       <td>
-
--  / %
-
-   .. raw:: html
-
-      </td>
-        </tr>
-        <tr>
-          <td>
-
-   3
-
-   .. raw:: html
-
-      </td>
-          <td>
-
-   -  -binary
-
-      .. raw:: html
-
-         </td>
-           </tr>
-           <tr>
-             <td>
-
-      4
-
-      .. raw:: html
-
-         </td>
-             <td>
-
-          =
-
-          .. raw:: html
-
-             </td>
-               </tr>
-               <tr>
-                 <td>
-
-          5
-
-          .. raw:: html
-
-             </td>
-                 <td>
-
-          == === != !== ^= ^== :math:`== `\ = *= *\ ==
-
-          .. raw:: html
-
-             </td>
-               </tr>
-               <tr>
-                 <td>
-
-          6
-
-          .. raw:: html
-
-             </td>
-                 <td>
-
-          &&
-
-          .. raw:: html
-
-             </td>
-               </tr>
-               <tr>
-                 <td>
-
-          7
-
-          .. raw:: html
-
-             </td>
-                 <td>
-
-          \|\|
-
-          .. raw:: html
-
-             </td>
-               </tr>
-             </table>
++---------+------------------------------------+
+| 1 (top) | ! -unary                           |
++---------+------------------------------------+
+| 2       | * / %                              |
++---------+------------------------------------+
+| 3       | + -binary                          |
++---------+------------------------------------+
+| 4       | >=                                 |
++---------+------------------------------------+
+| 5       | == === != !== ^= ^== $== $= *= *== |
++---------+------------------------------------+
+| 6       | &&                                 |
++---------+------------------------------------+
+| 7       | ||                                 |
++---------+------------------------------------+
 
 Parentheses are used to explicitly denote precedence by grouping parts
 of an expression that should be evaluated first.
